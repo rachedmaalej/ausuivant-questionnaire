@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Questionnaire de recherche pour médecins libéraux — AuSuivant, gestion de file d'attente pour les cabinets médicaux" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="color-scheme" content="light" />
+  <title>AuSuivant — Questionnaire pour médecins</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <script src="questions.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">AuSuivant</span>
+    </div>
+    <span class="brand-tag">Recherche produit — Phase 1</span>
+  </header>
+
+  <main id="app">
+    <!-- Intro screen -->
+    <section id="screen-intro" class="screen">
+      <h1 class="display-small">Votre expérience de la file d'attente</h1>
+      <p class="lead">
+        Nous concevons AuSuivant, un outil pour aider les médecins libéraux à gérer les patients sans rendez-vous.
+        Avant d'écrire la moindre ligne de code, nous voulons comprendre votre réalité.
+      </p>
+
+      <div class="info-card">
+        <h2 class="title-large">Comment ça se passe</h2>
+        <ul class="info-list">
+          <li><strong>5 questions à la fois.</strong> Vous pouvez vous arrêter après n'importe quelle série.</li>
+          <li><strong>~8 minutes</strong> pour la première série, ~30 minutes au total si vous faites tout.</li>
+          <li><strong>Réponses courtes acceptées.</strong> Une phrase par question suffit quand vous êtes pressé.</li>
+          <li><strong>Aucune donnée patient.</strong> Nous ne vous posons aucune question clinique.</li>
+        </ul>
+      </div>
+
+      <div class="info-card subtle">
+        <h2 class="title-large">Confidentialité</h2>
+        <p>
+          Vos réponses sont anonymisées, stockées sur un serveur européen, utilisées uniquement pour la conception d'AuSuivant,
+          et supprimées à votre demande. En continuant, vous acceptez cette utilisation.
+          Aucune question ne porte sur vos patients ou votre pratique clinique.
+        </p>
+      </div>
+
+      <div class="action-row">
+        <button type="button" id="btn-start" class="btn btn-filled btn-large">
+          Commencer la 1<sup>re</sup> série
+        </button>
+      </div>
+    </section>
+
+    <!-- Batch screen -->
+    <section id="screen-batch" class="screen hidden" aria-live="polite">
+      <div class="progress-wrap">
+        <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div id="progress-bar-fill" class="progress-bar-fill"></div>
+        </div>
+        <div class="progress-label">
+          <span id="progress-text">Série 1 sur 5</span>
+          <span id="progress-time" class="progress-time"></span>
+        </div>
+      </div>
+
+      <h1 id="batch-title" class="headline-medium"></h1>
+      <p id="batch-subtitle" class="batch-subtitle"></p>
+
+      <form id="batch-form" novalidate>
+        <div id="questions-container"></div>
+
+        <div id="form-error" class="form-error hidden" role="alert"></div>
+
+        <div class="action-row">
+          <button type="button" id="btn-cancel" class="btn btn-text">
+            Annuler cette série
+          </button>
+          <button type="submit" id="btn-submit" class="btn btn-filled">
+            <span id="submit-label">Envoyer mes réponses</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Submitting screen -->
+    <section id="screen-submitting" class="screen hidden centered">
+      <div class="spinner" aria-label="Chargement"></div>
+      <p class="title-medium">Envoi en cours…</p>
+    </section>
+
+    <!-- Continue screen -->
+    <section id="screen-continue" class="screen hidden">
+      <div class="success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="56" height="56">
+          <path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>
+        </svg>
+      </div>
+      <h1 class="headline-medium">Merci, série envoyée</h1>
+      <p id="continue-progress" class="body-large"></p>
+
+      <div class="info-card">
+        <h2 class="title-large">Souhaitez-vous continuer ?</h2>
+        <p class="body-large" id="continue-next-preview"></p>
+        <p class="body-small subtle-text" id="continue-time"></p>
+      </div>
+
+      <div class="action-row spaced">
+        <button type="button" id="btn-stop" class="btn btn-outlined">
+          Terminer ici, merci
+        </button>
+        <button type="button" id="btn-continue" class="btn btn-filled">
+          <span id="continue-label">Oui, 5 questions de plus</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Final thanks screen -->
+    <section id="screen-thanks" class="screen hidden">
+      <div class="success-icon big" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="80" height="80">
+          <path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>
+        </svg>
+      </div>
+      <h1 class="display-small">Merci infiniment</h1>
+      <p class="lead">
+        Vos réponses vont directement nourrir la conception d'AuSuivant.
+        Ce que vous venez de partager a plus de valeur que n'importe quelle étude de marché.
+      </p>
+
+      <div class="info-card">
+        <h2 class="title-large">Et après ?</h2>
+        <p class="body-large">
+          Nous allons agréger vos réponses avec celles d'autres confrères, les croiser avec nos personas et nos hypothèses,
+          et en tirer des décisions concrètes pour la prochaine phase du projet.
+          Si vous le souhaitez, nous pouvons vous envoyer un résumé dans quelques semaines.
+        </p>
+
+        <div class="email-field">
+          <div class="text-field">
+            <label for="optin-email">Votre email (facultatif)</label>
+            <input type="email" id="optin-email" placeholder="votre.email@exemple.fr" />
+            <p class="text-field-helper">Uniquement pour vous envoyer le résumé. Jamais de marketing.</p>
+          </div>
+          <button type="button" id="btn-optin" class="btn btn-tonal">Envoyer</button>
+        </div>
+        <p id="optin-status" class="body-small subtle-text hidden"></p>
+      </div>
+
+      <p class="body-small subtle-text session-footer">
+        Session : <code id="session-id-display"></code>
+      </p>
+    </section>
+
+    <!-- Error screen -->
+    <section id="screen-error" class="screen hidden">
+      <div class="error-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="56" height="56">
+          <path fill="currentColor" d="M11 15h2v2h-2zm0-8h2v6h-2zm1-5C6.47 2 2 6.5 2 12a10 10 0 1 0 10-10m0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16"/>
+        </svg>
+      </div>
+      <h1 class="headline-medium">L'envoi a échoué</h1>
+      <p class="body-large">
+        Vos réponses sont conservées localement dans votre navigateur et n'ont pas été perdues.
+        Vérifiez votre connexion et réessayez.
+      </p>
+      <p id="error-detail" class="body-small subtle-text"></p>
+      <div class="action-row">
+        <button type="button" id="btn-retry" class="btn btn-filled">Réessayer l'envoi</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Recherche pour AuSuivant · Phase 1 — Découverte</span>
+    <span>Vos réponses sont anonymisées et stockées en Europe.</span>
+  </footer>
+</body>
+</html>
