@@ -36,23 +36,22 @@
   <main id="app">
     <!-- ─────────────── Intro screen ─────────────── -->
     <section id="screen-intro" class="screen">
-      <h1 class="display-small">Votre expérience de la file d'attente</h1>
+      <h1 class="display-small">La file d'attente, vue par vous</h1>
       <p class="lead">
-        Nous concevons AuSuivant, un outil pour aider les médecins libéraux à gérer
-        les patients sans rendez-vous. Avant d'écrire la moindre ligne de code,
-        nous voulons comprendre votre réalité.
+        On construit AuSuivant pour aider les médecins libéraux à gérer les patients sans rendez-vous.
+        Avant d'écrire une ligne de code, on a besoin de comprendre comment ça se passe vraiment chez vous.
       </p>
 
       <article class="info-card">
         <header class="info-card-header">
           <span class="material-symbols-outlined info-card-icon">info</span>
-          <h2 class="title-large">Comment ça se passe</h2>
+          <h2 class="title-large">Comment ça marche</h2>
         </header>
         <ul class="info-list">
-          <li><strong>5 questions à la fois.</strong> Vous pouvez vous arrêter après n'importe quelle série.</li>
-          <li><strong>~8 minutes</strong> pour la première série, ~30 minutes au total si vous faites tout.</li>
-          <li><strong>Réponses courtes acceptées.</strong> Une phrase par question suffit quand vous êtes pressé.</li>
-          <li><strong>Aucune donnée patient.</strong> Nous ne vous posons aucune question clinique.</li>
+          <li><strong>5 questions à la fois.</strong> Vous arrêtez quand vous voulez.</li>
+          <li><strong>~8 minutes</strong> pour la première série, ~30 minutes en tout si vous allez jusqu'au bout.</li>
+          <li><strong>Réponses courtes bienvenues.</strong> Une phrase suffit quand vous êtes pressé.</li>
+          <li><strong>Aucune question clinique.</strong> Aucune donnée patient ne sera collectée.</li>
         </ul>
       </article>
 
@@ -62,16 +61,14 @@
           <h2 class="title-large">Confidentialité</h2>
         </header>
         <p class="body-medium">
-          Vos réponses sont anonymisées, stockées sur un serveur européen,
-          utilisées uniquement pour la conception d'AuSuivant et supprimées à votre demande.
-          En continuant, vous acceptez cette utilisation.
-          Aucune question ne porte sur vos patients ou votre pratique clinique.
+          Vos réponses sont anonymisées, hébergées en Europe, utilisées uniquement pour AuSuivant,
+          et supprimées sur simple demande. En continuant, vous acceptez ce cadre.
         </p>
       </article>
 
       <div class="action-row action-row-end">
         <button type="button" id="btn-start" class="btn btn-filled btn-large">
-          <span>Commencer la 1<sup>re</sup> série</span>
+          <span>C'est parti</span>
           <span class="material-symbols-outlined btn-icon-trailing">arrow_forward</span>
         </button>
       </div>
@@ -102,10 +99,10 @@
 
         <div class="action-row">
           <button type="button" id="btn-cancel" class="btn btn-text">
-            Annuler cette série
+            Tout annuler
           </button>
           <button type="submit" id="btn-submit" class="btn btn-filled">
-            <span id="submit-label">Envoyer mes réponses</span>
+            <span id="submit-label">Envoyer</span>
             <span class="material-symbols-outlined btn-icon-trailing">send</span>
           </button>
         </div>
@@ -123,13 +120,13 @@
       <div class="status-icon success-icon" aria-hidden="true">
         <span class="material-symbols-outlined">check_circle</span>
       </div>
-      <h1 class="headline-medium">Merci, série envoyée</h1>
+      <h1 class="headline-medium">Bien reçu, merci</h1>
       <p id="continue-progress" class="body-large"></p>
 
       <article class="info-card">
         <header class="info-card-header">
           <span class="material-symbols-outlined info-card-icon">arrow_forward</span>
-          <h2 class="title-large">Souhaitez-vous continuer ?</h2>
+          <h2 class="title-large">On continue ?</h2>
         </header>
         <p class="body-large" id="continue-next-preview"></p>
         <p class="body-small subtle-text" id="continue-time"></p>
@@ -137,10 +134,10 @@
 
       <div class="action-row spaced">
         <button type="button" id="btn-stop" class="btn btn-outlined">
-          Terminer ici, merci
+          J'arrête là
         </button>
         <button type="button" id="btn-continue" class="btn btn-filled">
-          <span id="continue-label">Oui, 5 questions de plus</span>
+          <span id="continue-label">Allez, 5 de plus</span>
           <span class="material-symbols-outlined btn-icon-trailing">arrow_forward</span>
         </button>
       </div>
@@ -151,28 +148,27 @@
       <div class="status-icon success-icon big" aria-hidden="true">
         <span class="material-symbols-outlined">favorite</span>
       </div>
-      <h1 class="display-small">Merci infiniment</h1>
+      <h1 class="display-small">Merci, vraiment</h1>
       <p class="lead">
-        Vos réponses vont directement nourrir la conception d'AuSuivant.
-        Ce que vous venez de partager a plus de valeur que n'importe quelle étude de marché.
+        Vos réponses vont directement orienter la conception d'AuSuivant.
+        C'est plus utile que n'importe quelle étude de marché.
       </p>
 
       <article class="info-card">
         <header class="info-card-header">
           <span class="material-symbols-outlined info-card-icon">mail</span>
-          <h2 class="title-large">Et après ?</h2>
+          <h2 class="title-large">Et la suite ?</h2>
         </header>
         <p class="body-large">
-          Nous allons agréger vos réponses avec celles d'autres confrères, les croiser avec nos personas et nos hypothèses,
-          et en tirer des décisions concrètes pour la prochaine phase du projet.
-          Si vous le souhaitez, nous pouvons vous envoyer un résumé dans quelques semaines.
+          On va croiser vos réponses avec celles d'autres confrères et en tirer les bonnes décisions.
+          Si vous voulez recevoir un résumé dans quelques semaines, laissez-nous votre email.
         </p>
 
         <div class="email-field">
           <div class="text-field">
             <label for="optin-email" class="label-large">Votre email (facultatif)</label>
             <input type="email" id="optin-email" placeholder="votre.email@exemple.fr" />
-            <p class="text-field-helper">Uniquement pour vous envoyer le résumé. Jamais de marketing.</p>
+            <p class="text-field-helper">Juste pour le résumé. Pas de marketing, promis.</p>
           </div>
           <button type="button" id="btn-optin" class="btn btn-tonal">
             Envoyer
@@ -191,16 +187,16 @@
       <div class="status-icon error-icon" aria-hidden="true">
         <span class="material-symbols-outlined">error</span>
       </div>
-      <h1 class="headline-medium">L'envoi a échoué</h1>
+      <h1 class="headline-medium">L'envoi n'a pas marché</h1>
       <p class="body-large">
-        Vos réponses sont conservées localement dans votre navigateur et n'ont pas été perdues.
+        Pas de panique : vos réponses sont gardées dans votre navigateur, elles ne sont pas perdues.
         Vérifiez votre connexion et réessayez.
       </p>
       <p id="error-detail" class="body-small subtle-text"></p>
       <div class="action-row action-row-end">
         <button type="button" id="btn-retry" class="btn btn-filled">
           <span class="material-symbols-outlined btn-icon-leading">refresh</span>
-          <span>Réessayer l'envoi</span>
+          <span>Réessayer</span>
         </button>
       </div>
     </section>

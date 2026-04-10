@@ -374,7 +374,7 @@ function showBatch(batchIndex) {
   errorEl.classList.add("hidden");
   errorEl.innerHTML = "";
 
-  $("#submit-label").textContent = "Envoyer mes réponses";
+  $("#submit-label").textContent = "Envoyer";
   $("#btn-submit").disabled = false;
 
   show("batch");
@@ -393,7 +393,7 @@ async function submit() {
   if (errors.length > 0) {
     const errorEl = $("#form-error");
     errorEl.innerHTML =
-      `<strong>Quelques réponses manquent :</strong><ul>` +
+      `<strong>Il manque quelques réponses :</strong><ul>` +
       errors.map((e) => `<li>${escapeHtml(e)}</li>`).join("") +
       "</ul>";
     errorEl.classList.remove("hidden");
@@ -464,7 +464,7 @@ function showContinuePrompt() {
   const completedNumber = completedBatch.number;
 
   $("#continue-progress").textContent =
-    `Série ${completedNumber} sur ${totalBatches} envoyée. Vous avez répondu à ${
+    `Série ${completedNumber} sur ${totalBatches} dans la boîte. Vous en êtes à ${
       completedNumber * 5
     } questions.`;
 
@@ -486,7 +486,7 @@ function showContinuePrompt() {
   }
 
   const nextBatch = window.BATCHES[nextIndex];
-  $("#continue-next-preview").textContent = `Série suivante : ${nextBatch.title}.`;
+  $("#continue-next-preview").textContent = `Prochaine série : ${nextBatch.title}.`;
   $("#continue-time").textContent = `Environ ${nextBatch.estimatedMinutes} minutes.`;
 
   $("#btn-continue").onclick = () => {
@@ -526,11 +526,11 @@ async function submitOptIn() {
       cumulative_answers: { ...state.cumulativeAnswers, optin_email: email }
     });
     const status = $("#optin-status");
-    status.textContent = "Merci, c'est noté.";
+    status.textContent = "C'est noté, merci.";
     status.classList.remove("hidden");
   } catch (err) {
     const status = $("#optin-status");
-    status.textContent = "L'envoi a échoué. Réessayez dans un instant.";
+    status.textContent = "L'envoi n'a pas marché. Réessayez dans un instant.";
     status.classList.remove("hidden");
     $("#btn-optin").disabled = false;
   }
@@ -561,7 +561,7 @@ function init() {
   $("#btn-cancel").addEventListener("click", () => {
     if (
       confirm(
-        "Êtes-vous sûr de vouloir annuler cette série ? Vos réponses pour cette série seront perdues."
+        "Sûr ? Vos réponses pour cette série seront perdues."
       )
     ) {
       clearState();
