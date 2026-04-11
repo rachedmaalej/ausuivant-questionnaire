@@ -1,13 +1,28 @@
-# AuSuivant — Doctor Questionnaire
+# AuSuivant — Multi-persona Research Questionnaire
 
-A Material Design 3 web questionnaire that asks French generalist doctors **5 research questions at a time**, with the option to continue for 5 more after each batch. Designed for the AuSuivant Phase 1 Discovery interviews.
+A Material Design 3 web questionnaire that surveys **6 distinct user personas** for the AuSuivant Phase 1 Discovery research. A screener on the first screen routes each respondent to a persona-specific question track. The same URL works for everyone — no separate links per persona.
 
-- **No build step.** Pure HTML/CSS/JS, Material Web 3 components loaded from CDN.
-- **GitHub Pages friendly.** Drop the folder into a repo, enable Pages, done.
-- **Progressive batches.** 5 questions → submit → "another 5?" → 5 more → submit → ... up to 25 questions.
-- **MSP branch.** The 5th batch only appears for doctors in a maison de santé pluriprofessionnelle.
-- **Recoverable.** Answers are kept in localStorage for 24 hours; an accidental refresh doesn't lose them.
-- **Pluggable backend.** Two free options documented below: Formspree (easiest) or Google Apps Script (most control, free forever).
+- **One link, six tracks.** Médecins (3 variants), secrétaires médicales, and patients (3 variants) all start at the same URL and only see the questions relevant to their role.
+- **5 questions at a time.** Progressive batches with an opt-in continue prompt — respondents can stop at any boundary without losing their work.
+- **Recoverable.** Answers persist in localStorage for 24h; an accidental refresh resumes the session.
+- **No build step.** Pure HTML/CSS/JS. GitHub Pages compatible. Material Design 3 styling, mobile-first.
+- **Google Apps Script backend.** Submissions land in a Google Sheet with one row per batch, including a `Persona ID` column for filtering.
+
+---
+
+## The 6 personas
+
+| Code | Label | Screener path |
+|---|---|---|
+| **P1** | Médecin avec secrétaire | Médecin → Seul, avec secrétaire |
+| **P1b** | Médecin solo (sans secrétaire) | Médecin → Seul, sans secrétaire |
+| **P1c** | Médecin en cabinet de groupe ou MSP | Médecin → En cabinet de groupe ou MSP |
+| **P2** | Secrétaire médicale | Secrétaire médicale (no second question) |
+| **P3a** | Patient adulte actif | Patient → Adulte actif |
+| **P3b** | Patient senior (60+) | Patient → Senior |
+| **P3c** | Parent qui consulte pour son enfant | Patient → Parent |
+
+Each persona sees ~10–18 questions split across 3–6 batches (~6–13 minutes total).
 
 ---
 
@@ -15,277 +30,332 @@ A Material Design 3 web questionnaire that asks French generalist doctors **5 re
 
 ```
 questionnaire/
-├── index.html       # the shell
-├── styles.css       # MD3 custom theme + layout
-├── app.js           # state machine, validation, submission
-├── questions.js     # the 25 questions in 5 batches — edit this to change content
+├── index.html       # the shell (intro, screener, batch, continue, thanks, error screens)
+├── styles.css       # MD3 design tokens + layout
+├── app.js           # state machine, screener, persona filter, validation, submission
+├── questions.js     # question content + persona tags — edit this to change content
 ├── .nojekyll        # tells GitHub Pages not to run Jekyll
 └── README.md        # you are here
 ```
 
-To **change a question**, edit only [questions.js](questions.js).
+To **change a question or add one**, edit only [questions.js](questions.js).
 To **change colours or layout**, edit only [styles.css](styles.css).
-To **change the backend**, edit only the `CONFIG` block at the top of [app.js](app.js).
+To **change the backend endpoint**, edit only the `CONFIG` block at the top of [app.js](app.js).
 
 ---
 
-## Quick start (10 minutes)
+## How the screener works
 
-### 1. Pick a backend
+The first screen after the intro asks **two questions** (only the first is shown to secrétaires):
 
-You need somewhere for the answers to land. Two recommended options:
+1. **Vous êtes plutôt…** — radio: Médecin / Secrétaire médicale / Patient
+2. (Conditional)
+   - If Médecin: **Comment exercez-vous ?** — radio: Seul avec secrétaire / Seul sans secrétaire / En cabinet de groupe ou MSP
+   - If Patient: **Et plus précisément, vous êtes…** — radio: Adulte actif / Senior / Parent qui consulte pour son enfant
+   - If Secrétaire: no follow-up — the continue button activates immediately
 
-| | **Formspree** (easiest) | **Google Apps Script** (more control) |
+After the screener, `state.selectedPersona` is set to one of the 7 persona codes and the questionnaire shows only the questions tagged for that persona.
+
+---
+
+## Question schema (questions.js)
+
+Each question lives in a batch. Each question has these fields:
+
+| Field | Required | Description |
 |---|---|---|
-| Setup time | 2 min | 8 min |
-| Free tier | 50 submissions/month | Unlimited |
-| Where data lands | Formspree dashboard + email | Your own Google Sheet |
-| Best for | First few interviews | Long-term collection |
+| `id` | always | Unique identifier — becomes the column key in the backend payload |
+| `label` | always | The French question text |
+| `type` | always | One of `textarea`, `short`, `radio`, `pricing-pair` |
+| `required` | always | Boolean; if `true`, blocks batch submission until answered |
+| `personas` | always (in this version) | Array of persona codes that should see this question, e.g. `["P1", "P1b", "P1c"]`. Cross-persona reuse is encouraged — store one question, list multiple personas |
+| `helper` | optional | One-line clarification under the label |
+| `hypothesis` | optional | Hypothesis code (e.g., `"D-H1"`) for traceability — not displayed to the user |
+| `options` | for `radio` only | Array of `{ value, label }` pairs |
+| `commentField` | for `radio` only | Set `true` to add an optional textarea below the radio group |
+| `inputType` | for `short` only | `"text"` (default) or `"number"` |
 
-**Pick Formspree** if you want it working in 2 minutes and have <10 doctors to interview.
-**Pick Apps Script** if you want full control and your data in a spreadsheet.
+### Cross-persona questions
 
-You can switch later — only one variable changes in `app.js`.
+A question with `personas: ["P1", "P1b", "P1c"]` is stored once and shown to all three doctor variants. Same backend column for the question across all three personas, so you can filter the Google Sheet by persona AND compare answers across personas trivially. Examples in this codebase:
 
-### 2A. Setup with Formspree
+- The `pricing` question (D-H4) is shown to P1, P1b, P1c
+- The `last_visit_story` question is shown to P3a, P3b, P3c
+- The closing `one_thing_to_change` question is shown to all 7 personas
 
-1. Go to [formspree.io](https://formspree.io) and sign up (free).
-2. Create a new form. Pick "Plain HTML form" — that's all you need.
-3. Copy the form endpoint, which looks like:
-   `https://formspree.io/f/xyzabc123`
-4. Open [app.js](app.js) and edit the `CONFIG` block at the top:
-   ```js
-   const CONFIG = {
-     ENDPOINT: "https://formspree.io/f/xyzabc123",  // ← paste yours
-     METHOD: "formspree",
-     // ...
-   };
-   ```
-5. Save. That's it — see step 3 for deployment.
+### Empty batches are skipped automatically
 
-**Note on Formspree's free tier:** the limit is 50 submissions per month *per form*. Each batch counts as one submission. If a doctor completes all 5 batches, that's 5 submissions for one interview. So 50/month = ~10 doctors. Upgrade to Formspree's paid tier (~€10/month) if you go over.
+If a batch's `questions` array contains zero questions tagged for the current persona, the batch is silently skipped — both during forward navigation (`showBatch`) and in the continue prompt's "next batch" computation. This means you can have a "Doctolib & complémentarité" batch that only doctors and secrétaires see, and patients will jump straight from the previous batch to the closing one without noticing.
 
-### 2B. Setup with Google Apps Script
+### MSP-only batches
 
-1. Go to [sheets.google.com](https://sheets.google.com) and create a new sheet. Name it whatever you like (e.g., "AuSuivant — Doctor responses").
-2. In row 1, paste these column headers:
-   ```
-   Received   Session ID   Batch #   Batch Title   Submitted At   Locale   User Agent   Batch Answers (JSON)   Cumulative Answers (JSON)
-   ```
-3. Click **Extensions → Apps Script**.
-4. Delete any existing code and paste this:
-
-   ```js
-   function doPost(e) {
-     try {
-       const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-       const data = JSON.parse(e.postData.contents);
-
-       sheet.appendRow([
-         new Date(),
-         data.session_id || "",
-         data.batch_number || "",
-         data.batch_title || "",
-         data.submitted_at || "",
-         data.locale || "",
-         data.user_agent || "",
-         JSON.stringify(data.batch_answers || {}),
-         JSON.stringify(data.cumulative_answers || {})
-       ]);
-
-       return ContentService
-         .createTextOutput(JSON.stringify({ status: "ok" }))
-         .setMimeType(ContentService.MimeType.JSON);
-     } catch (err) {
-       return ContentService
-         .createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
-         .setMimeType(ContentService.MimeType.JSON);
-     }
-   }
-   ```
-
-5. Click **Deploy → New deployment**.
-6. Click the gear icon → **Web app**.
-7. Configure:
-   - **Description:** "AuSuivant questionnaire endpoint"
-   - **Execute as:** Me (your account)
-   - **Who has access:** **Anyone** (this lets the public form post anonymously)
-8. Click **Deploy**. You may need to authorise the script. Accept the warnings — it's your own script writing to your own sheet.
-9. Copy the **Web app URL**. It looks like:
-   `https://script.google.com/macros/s/AKfycbz.../exec`
-10. Open [app.js](app.js) and edit the `CONFIG` block:
-    ```js
-    const CONFIG = {
-      ENDPOINT: "https://script.google.com/macros/s/AKfycbz.../exec",  // ← paste yours
-      METHOD: "apps-script",
-      // ...
-    };
-    ```
-11. Save.
-
-**Important:** if you ever change the Apps Script code, you must **redeploy a new version** (Deploy → Manage deployments → edit → Version: New version → Deploy). The URL stays the same.
-
-**Why "text/plain" content type?** Apps Script web apps don't handle CORS preflight gracefully for `application/json` POSTs. The `app.js` code automatically uses `text/plain;charset=utf-8` when `METHOD: "apps-script"` is set, which sidesteps the preflight. Apps Script reads the JSON body via `e.postData.contents` regardless of content type.
-
-### 3. Deploy on GitHub Pages
-
-1. Create a new repository on GitHub. Suggested name: `ausuivant-questionnaire`.
-2. Push the contents of this folder (the **inside** of `questionnaire/`, not the folder itself) to the root of the repo.
-3. In the repo, go to **Settings → Pages**.
-4. Under **Source**, pick:
-   - **Branch:** `main` (or whatever your default branch is)
-   - **Folder:** `/ (root)`
-5. Click **Save**.
-6. Wait 1–2 minutes. GitHub Pages will tell you the URL — typically `https://YOUR-USERNAME.github.io/ausuivant-questionnaire/`.
-7. Visit that URL. The questionnaire should load.
-
-**Custom domain (optional):** if you want `questionnaire.ausuivant.fr`, add a `CNAME` file in the repo root containing your domain, and configure DNS as GitHub Pages instructs.
+A batch with `mspOnly: true` is only shown to persona `P1c`. This is the legacy pattern from the single-persona version and still works alongside the new `personas: [...]` filter.
 
 ---
 
-## Sharing the link with a doctor
+## Quick start (10 minutes) — Google Apps Script backend
 
-Send a single link. No login, no app, no install. The questionnaire works on:
+The questionnaire is wired to a Google Apps Script web app that writes one row per batch to a Google Sheet. Setup is one-time.
 
-- iPhone Safari (iOS 15+)
-- Android Chrome
-- Desktop Chrome / Firefox / Safari / Edge (last 2 years)
+### 1. Create the Google Sheet
 
-**Recommended message** to a doctor (in French):
+1. Go to [sheets.google.com](https://sheets.google.com) and create a new sheet
+2. Name it: `AuSuivant — Multi-persona Questionnaire Responses`
+3. In row 1, paste these **10 column headers** (tab-separated for easy paste):
 
-> Bonjour Docteur,
+```
+Received	Session ID	Batch #	Batch Title	Submitted At	Locale	Persona ID	User Agent	Batch Answers (JSON)	Cumulative Answers (JSON)
+```
+
+4. Make row 1 bold and freeze it: select row 1 → Format → Bold → View → Freeze → 1 row
+
+### 2. Create the Apps Script
+
+1. With the Sheet open, click **Extensions → Apps Script**
+2. Rename the project: `AuSuivant Questionnaire Endpoint`
+3. Delete the default `myFunction` and paste this code:
+
+```javascript
+function doPost(e) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const data = JSON.parse(e.postData.contents);
+
+    sheet.appendRow([
+      new Date(),
+      data.session_id || "",
+      data.batch_number || "",
+      data.batch_title || "",
+      data.submitted_at || "",
+      data.locale || "",
+      data.persona_id || "",
+      data.user_agent || "",
+      JSON.stringify(data.batch_answers || {}),
+      JSON.stringify(data.cumulative_answers || {})
+    ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "ok" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: "ok", message: "AuSuivant questionnaire endpoint is live" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+```
+
+4. Save the project (`Ctrl+S` or floppy disk icon)
+
+### 3. Deploy as a web app
+
+1. Click **Deploy → New deployment**
+2. Click the gear icon → **Web app**
+3. Configure:
+   - **Description:** `v1 — initial deployment`
+   - **Execute as:** **Me** (your account)
+   - **Who has access:** **Anyone** ⚠️ Critical — must be "Anyone", not "Anyone with Google account"
+4. Click **Deploy**, accept the authorisation flow ("Advanced → Go to ... (unsafe) → Allow")
+5. Copy the **Web app URL** that looks like: `https://script.google.com/macros/s/AKfycbz.../exec`
+
+### 4. Wire the URL into the questionnaire
+
+Open [app.js](app.js) and edit the `CONFIG` block at the top:
+
+```javascript
+const CONFIG = {
+  ENDPOINT: "https://script.google.com/macros/s/AKfycbz.../exec",  // paste yours
+  METHOD: "apps-script",
+  STORAGE_KEY: "ausuivant-questionnaire-v1",
+  STORAGE_TTL_HOURS: 24
+};
+```
+
+### 5. Test locally
+
+```bash
+cd "questionnaire"
+python -m http.server 8000
+```
+
+Open http://localhost:8000 in a browser with DevTools console open. Walk through one persona path end-to-end and verify a row lands in your Sheet with the `Persona ID` column populated.
+
+### 6. Deploy to GitHub Pages
+
+```bash
+git init && git branch -M main
+git add .
+git commit -m "Initial multi-persona questionnaire deployment"
+git remote add origin https://github.com/YOUR-USERNAME/ausuivant-questionnaire.git
+git push -u origin main
+```
+
+Then in the repo settings: **Settings → Pages → Source: main / `/ (root)` → Save**.
+
+After ~1 minute, the questionnaire is live at `https://YOUR-USERNAME.github.io/ausuivant-questionnaire/`.
+
+---
+
+## Migrating from the single-persona version
+
+If you previously deployed the single-persona version of this questionnaire, the upgrade requires three changes outside the repo:
+
+### 1. Add the `Persona ID` column to your existing Sheet
+
+The new Apps Script writes one extra column. **Insert a new column between "Locale" (column F) and "User Agent" (currently column G)** with the header `Persona ID`. Your sheet should now have 10 columns instead of 9.
+
+If you have existing test rows from the single-persona version, delete them first to keep the sheet clean.
+
+### 2. Update the Apps Script `doPost()` function
+
+The new `doPost()` includes `data.persona_id || ""` between the locale and user agent rows. Replace the entire function with the version from step 2 above.
+
+**Critical:** Apps Script requires a new deployment version when the code changes. After saving, click **Deploy → Manage deployments → pencil icon → Version: New version → Deploy**. The Web app URL stays the same — do not click "New deployment" or you'll get a different URL.
+
+### 3. Refresh your browser
+
+The questionnaire's localStorage key is unchanged (`ausuivant-questionnaire-v1`), so any in-progress sessions from the old version will resume — but they won't have a `selectedPersona` set, which means they'll fall through to "no questions visible" and silently finish. To avoid this for known-good test sessions, clear localStorage in the browser dev tools, or just hard-refresh the page.
+
+---
+
+## Sharing the link with respondents
+
+Send a single link. Same URL for all 6 personas — the screener routes them automatically.
+
+**Sample message in French:**
+
+> Bonjour,
 >
-> Comme convenu, voici le questionnaire dont je vous parlais. **5 questions à la fois**, vous pouvez vous arrêter quand vous voulez. La première série prend ~8 minutes. Vos réponses sont anonymisées et m'aident à concevoir un outil pour les cabinets médicaux.
+> Comme convenu, voici le questionnaire pour la recherche AuSuivant. La première page demande qui vous êtes (médecin, secrétaire médicale, patient) puis vous pose les questions adaptées à votre rôle. **5 questions à la fois**, vous pouvez vous arrêter quand vous voulez. Compter ~10 minutes selon votre profil.
+>
+> Vos réponses sont anonymisées et m'aident à concevoir un outil pour les cabinets médicaux français.
 >
 > Lien : https://YOUR-USERNAME.github.io/ausuivant-questionnaire/
 >
 > Merci infiniment pour votre temps.
 
+The same link works for médecins, secrétaires médicales, and patients. The screener does the routing.
+
 ---
 
-## Editing questions
+## How to add a new persona
 
-All 25 questions live in [questions.js](questions.js). The structure is:
+Adding an 8th persona is a 5-minute task:
 
-```js
+1. **Pick a code** (e.g., `P4` for "infirmière en cabinet")
+2. **Add a button to the screener in [index.html](index.html)** — either as a top-level role on screen 1, or as a sub-variant under one of the existing roles
+3. **Wire the persona code in `wireScreener()` in [app.js](app.js)** — add the role/sub-variant case to the `continueBtn.addEventListener("click", ...)` block
+4. **Add the persona code to question definitions in [questions.js](questions.js)** — for each question this persona should see, add the code to its `personas: [...]` array (or create new questions tagged only for this persona)
+5. **Test the new path** locally before pushing
+
+No backend changes are needed — the `persona_id` column accepts any string.
+
+---
+
+## Editing question content
+
+All questions live in `window.BATCHES` in [questions.js](questions.js). The structure is:
+
+```javascript
 window.BATCHES = [
   {
     number: 1,
     title: "...",
     subtitle: "...",
-    estimatedMinutes: 8,
+    estimatedMinutes: 3,
     questions: [
-      { id: "unique_id", label: "...", type: "textarea", required: true, helper: "..." },
-      ...
+      {
+        id: "unique_id",
+        label: "...",
+        type: "textarea",
+        required: true,
+        personas: ["P1", "P1b", "P1c"],
+        helper: "..."
+      },
+      // ...
     ]
   },
-  ...
+  // more batches
 ];
 ```
 
-### Question types
+### Reordering batches
 
-| Type | What it renders | When to use |
-|---|---|---|
-| `textarea` | A multi-line text field, ~5 rows | Open-ended questions, default |
-| `short` | A single-line text or number field | Pricing numbers, percentages, names |
-| `radio` | A vertical radio group (set `options: [...]`); add `commentField: true` for an optional comment box | Categorical answers |
-| `pricing-pair` | Two number fields side-by-side (floor + ceiling) plus an optional reasoning textarea | Use only for the WTP question |
+Just rearrange the array. The user-facing "Série N sur M" label is computed dynamically from the batch's position among **visible** batches for the current persona — you don't need to renumber anything.
 
-**Question fields:**
+### Removing a question
 
-- `id` — unique identifier; becomes the column key in the backend payload. **Don't reuse IDs across batches.**
-- `label` — the question itself, in French
-- `helper` — optional one-line clarification under the label
-- `type` — see table above
-- `required` — boolean; if true, the user can't submit the batch without answering
-- `options` — for `radio` only: array of `{ value, label }` pairs
-- `commentField` — for `radio` only: adds an optional textarea below the radio group
-- `inputType` — for `short` only: `"text"` (default) or `"number"`
+Either delete the question object entirely, or remove the relevant persona codes from its `personas` array. Both work.
 
-### Reordering or removing questions
+### The 5-question-per-batch convention
 
-Just edit the array. The `number` field on each batch is cosmetic — the order is determined by the array index. The "Série N sur 5" progress label uses the `number` field, so update it if you remove a batch.
-
-### Adding a new batch
-
-Add another object to the `window.BATCHES` array. Make sure it has 5 questions (or change the title to reflect a different count). The "5 at a time" UX is hardcoded only in the user-facing copy, not in the logic — you can technically have batches of any size.
-
-### Conditional batches
-
-The 5th batch (`mspOnly: true`) is only shown to doctors who selected "MSP" in batch 4's `practice_structure` question. If you want to add another conditional batch, the logic lives in `showContinuePrompt()` in [app.js](app.js).
-
----
-
-## Customising the look
-
-The colour scheme is in [styles.css](styles.css), at the top under `:root`. The primary colour is AuSuivant navy (`#1A3C8F`). To change it, edit `--md-sys-color-primary` and ideally also the related `-container` and `-on-primary` tokens (use [m3.material.io/theme-builder](https://m3.material.io/theme-builder) to generate a full palette from a seed colour).
-
-A dark mode is included automatically via `@media (prefers-color-scheme: dark)`.
-
-**Typography:** Material Web 3 ships its own typescale. The body text is `Roboto` by default; if you want a different font, override `font-family` in `body`.
+The user-facing copy promises "5 questions à la fois" but this is a soft convention — batches in this version range from 2 to 11 questions. The continue prompt between batches preserves the "stop here" UX regardless of batch size. If you want strict 5-per-batch, split larger batches manually.
 
 ---
 
 ## Privacy & data handling
 
-This questionnaire is for **research interviews with consenting doctors**, not patient data. It is therefore **outside RGPD Article 9** (no health data), but should still follow basic RGPD obligations:
+This questionnaire is for **research interviews with consenting respondents**, not patient data. It is therefore **outside RGPD Article 9** (no health data), but should still follow basic RGPD obligations:
 
-- **Lawful basis:** explicit consent (the doctor opens the link knowing what it is and clicks "Commencer")
-- **Data minimisation:** the form only asks what is necessary for product research; no clinical questions
-- **Storage location:** the backend you chose
-  - **Formspree:** US-headquartered, but offers an EU data residency option on paid plans. Fine for non-PII research at small scale; review their DPA if you go to volume.
-  - **Google Apps Script:** stores in your Google Drive. Google Workspace EU-region accounts can keep data in EU.
-- **Retention:** delete responses from your backend within 24 months unless the doctor opts in to longer retention
-- **Right to be forgotten:** if a doctor asks to be removed, search for their `session_id` in your backend and delete the matching rows
+- **Lawful basis:** explicit consent (the respondent opens the link knowing what it is and clicks "C'est parti")
+- **Data minimisation:** the form only asks what is necessary for product research; no clinical questions about patients
+- **Storage location:** Google Sheets (your Google Workspace EU-region account is recommended for EU residency)
+- **Retention:** delete responses from your backend within 24 months unless the respondent opts in to longer retention
+- **Right to be forgotten:** if a respondent asks to be removed, search for their `session_id` in your backend and delete the matching rows
 
-**This questionnaire never collects patient information.** All questions are about the doctor's own practice, opinions, and tooling. The optional email field at the end is opt-in only and is for sending a research summary back to the doctor.
+The optional email field at the end is opt-in only and is for sending a research summary back to the respondent.
 
-If you collect responses from more than ~50 doctors, consider:
+If you collect responses from more than ~50 respondents, consider:
+
 1. Reviewing the privacy notice with your DPO (designated under [docs/discovery/regulatory-summary.md](../docs/discovery/regulatory-summary.md))
 2. Adding a clearer consent screen with retention period and right-to-erasure information
-3. Switching to an EU-only backend (e.g., Cloudflare Workers + D1 in EU region)
+3. Using an EU-region Google Workspace account for the Sheet
 
 ---
 
 ## Troubleshooting
 
 ### "Submission failed" error
-- **Check the endpoint URL** in [app.js](app.js) — it must be the full URL, not just the form ID
+- **Check the endpoint URL** in [app.js](app.js) — full URL, not just the form ID
 - **Check the browser console** (F12) for the actual error
-- **Formspree:** check that your form is "active" in the dashboard and not in test mode
-- **Apps Script:** check that the deployment is set to "Anyone" access, not "Anyone with the link"; check that you redeployed after changing the code
+- **Apps Script:** check that the deployment is set to **Anyone** access, not "Anyone with the link"; check that you redeployed after changing the code
 
 ### Apps Script returns CORS errors
 - Make sure `METHOD: "apps-script"` is set in `CONFIG` — this switches to a CORS-safe content type
-- If still failing, redeploy as a new version (Apps Script versioning is finicky)
+- If still failing, redeploy as a new version
 
-### The form looks unstyled / broken
-- The Material Web 3 components are loaded from CDN. If the user's network blocks `esm.run`, the components won't render.
-- For production use you can self-host the Material Web bundle. See the `@material/web` README at https://github.com/material-components/material-web for instructions.
+### A persona's questionnaire is blank or skips immediately
+- Check that at least one batch has at least one question tagged for that persona in its `personas: [...]` array
+- Open browser console and run `getVisibleBatchCount("P1")` (or any persona code) to see how many batches are visible
 
-### A doctor reported losing answers when refreshing
-- Answers are persisted to localStorage with a 24-hour TTL. If they refreshed after 24 hours, the state was cleared.
-- If they cleared their browser data manually, there's nothing we can do.
-- If they used private/incognito mode, localStorage doesn't persist across closing the window.
+### The progress bar shows wrong "Série N sur M"
+- The numerator is computed by counting visible batches for the current persona; if the numbers look wrong, check that the persona is correctly set in `state.selectedPersona`
 
-### The progress bar shows the wrong percentage
-- The bar uses `state.currentBatchIndex / window.BATCHES.length`. If you skip the MSP batch, the percentage will jump. This is intentional — the bar reflects how many batches the *individual doctor* will see, not the total possible.
+### A respondent reported losing answers when refreshing
+- Answers persist in localStorage with a 24-hour TTL; refreshing within 24h restores everything
+- After 24h, the state is cleared and they restart from the screener
+- Private/incognito mode breaks localStorage persistence — answers are not restored across tab close
 
 ---
 
 ## Sample analysis after responses come in
 
-Once you have responses, here's a quick mental model for analysis:
+Once responses are landing:
 
-1. **Sort by `session_id`** to see each doctor's full journey. Some will stop after batch 1, some will go all the way.
-2. **Look at which questions cluster on confidence-revealing dimensions:**
-   - `pricing_floor` and `pricing_ceiling` — get distributions, not averages
-   - `free_tier_cap` radio — count the four buckets
-   - `secretary_gatekeeper` and `last_tool_adopted` — code as themes (does the secrétaire really decide?)
-   - `camera_workaround` — one of the strongest signals
-3. **Cross-reference against the desk research synthesis** at [docs/discovery/desk-research-findings/synthesis.md](../docs/discovery/desk-research-findings/synthesis.md). For each hypothesis with `[interview-required]`, see if these responses move it from open to closed.
-4. **Update [personas.md](../docs/discovery/personas.md)** with `[interview-confirmed]` / `[interview-contradicted]` tags after reading the responses.
-5. **Update [feature-backlog.md §6](../docs/discovery/feature-backlog.md)** if any pain or coverage gap shifted.
+1. **Filter the Sheet by `Persona ID`** to see each persona's responses separately
+2. **Sort by `Session ID`** within each persona to see each respondent's full journey
+3. **Look at distributions, not averages:**
+   - `pricing_floor` and `pricing_ceiling` — get the shape of the WTP distribution per doctor variant
+   - `free_tier_cap` radio counts — how many doctors think 20/day is fair?
+   - `secretary_gatekeeper` (P1) — code as themes
+   - `camera_workaround` (P1b) — count the four buckets
+4. **Cross-reference with [docs/discovery/desk-research-findings/synthesis.md](../docs/discovery/desk-research-findings/synthesis.md)** — for each `[interview-required]` hypothesis, see if responses move it from open to closed
+5. **Update [docs/discovery/personas.md](../docs/discovery/personas.md)** with `[interview-confirmed]` / `[interview-contradicted]` tags after analysis
 
-The questionnaire is a complement to live interviews, not a replacement. A doctor who answers all 25 questions in writing is still less rich than one who talks for 30 minutes — but a doctor who answers 5 questions in writing is much better than nothing, and the format respects their time.
+The questionnaire is the entire interview pipeline for this project — there are no in-person interviews. Treat each response as one full interview.

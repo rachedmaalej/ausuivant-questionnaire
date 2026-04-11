@@ -23,13 +23,15 @@ const state = {
   sessionId: null,
   currentBatchIndex: 0,
   cumulativeAnswers: {},
-  practiceStructure: null
+  practiceStructure: null,
+  selectedPersona: null // "P1" | "P1b" | "P1c" | "P2" | "P3a" | "P3b" | "P3c"
 };
 
 /* ──────────────────────── DOM helpers ──────────────────────── */
 const $ = (sel) => document.querySelector(sel);
 const screens = {
   intro: $("#screen-intro"),
+  screener: $("#screen-screener"),
   batch: $("#screen-batch"),
   submitting: $("#screen-submitting"),
   continue: $("#screen-continue"),
@@ -63,6 +65,7 @@ function saveState() {
         currentBatchIndex: state.currentBatchIndex,
         cumulativeAnswers: state.cumulativeAnswers,
         practiceStructure: state.practiceStructure,
+        selectedPersona: state.selectedPersona,
         savedAt: Date.now()
       })
     );
@@ -274,11 +277,39 @@ function wireRadioGroups() {
   });
 }
 
+/* ──────────────────────── Persona filtering ──────────────────────── */
+function getVisibleQuestions(batch, persona) {
+  return batch.questions.filter((q) => {
+    if (!q.personas) return true; // No filter = show to all (legacy compat)
+    return q.personas.includes(persona);
+  });
+}
+
+function getVisibleBatchCount(persona) {
+  return window.BATCHES.filter((b) => {
+    if (b.mspOnly && persona !== "P1c") return false;
+    return getVisibleQuestions(b, persona).length > 0;
+  }).length;
+}
+
+function getVisibleBatchPosition(currentIndex, persona) {
+  // Returns the 1-indexed position of the current batch among visible batches for this persona
+  let position = 0;
+  for (let i = 0; i <= currentIndex; i += 1) {
+    const b = window.BATCHES[i];
+    if (b.mspOnly && persona !== "P1c") continue;
+    if (getVisibleQuestions(b, persona).length === 0) continue;
+    position += 1;
+  }
+  return position;
+}
+
 /* ──────────────────────── Validation ──────────────────────── */
 function validateBatch(batch) {
   const errors = [];
+  const visibleQuestions = getVisibleQuestions(batch, state.selectedPersona);
 
-  for (const q of batch.questions) {
+  for (const q of visibleQuestions) {
     if (!q.required) continue;
 
     if (q.type === "pricing-pair") {
@@ -317,8 +348,9 @@ function validateBatch(batch) {
 /* ──────────────────────── Answer collection ──────────────────────── */
 function collectBatchAnswers(batch) {
   const result = {};
+  const visibleQuestions = getVisibleQuestions(batch, state.selectedPersona);
 
-  for (const q of batch.questions) {
+  for (const q of visibleQuestions) {
     if (q.type === "pricing-pair") {
       result[`${q.id}_floor`] =
         document.querySelector(`[data-question-id="${q.id}_floor"]`)?.value?.trim() || "";
@@ -355,20 +387,35 @@ function showBatch(batchIndex) {
     return;
   }
 
+  // Skip MSP-only batch if persona isn't P1c
+  if (batch.mspOnly && state.selectedPersona !== "P1c") {
+    showBatch(batchIndex + 1);
+    return;
+  }
+
+  // Skip batch if no questions are visible for this persona
+  const visibleQuestions = getVisibleQuestions(batch, state.selectedPersona);
+  if (visibleQuestions.length === 0) {
+    showBatch(batchIndex + 1);
+    return;
+  }
+
   state.currentBatchIndex = batchIndex;
   saveState();
 
   $("#batch-title").textContent = batch.title;
   $("#batch-subtitle").textContent = batch.subtitle;
 
-  const totalBatches = window.BATCHES.length;
-  $("#progress-text").textContent = `Série ${batch.number} sur ${totalBatches}`;
+  // Persona-aware progress: show "Série N sur M" where M = visible batches for this persona
+  const totalVisible = getVisibleBatchCount(state.selectedPersona);
+  const currentPosition = getVisibleBatchPosition(batchIndex, state.selectedPersona);
+  $("#progress-text").textContent = `Série ${currentPosition} sur ${totalVisible}`;
   $("#progress-time").textContent = `≈ ${batch.estimatedMinutes} min`;
-  const percent = (batchIndex / totalBatches) * 100;
+  const percent = totalVisible > 0 ? ((currentPosition - 1) / totalVisible) * 100 : 0;
   $("#progress-bar-fill").style.width = `${percent}%`;
 
   const container = $("#questions-container");
-  container.innerHTML = batch.questions.map((q, i) => renderQuestion(q, i)).join("");
+  container.innerHTML = visibleQuestions.map((q, i) => renderQuestion(q, i)).join("");
 
   const errorEl = $("#form-error");
   errorEl.classList.add("hidden");
@@ -419,6 +466,7 @@ async function submit() {
       batch_title: batch.title,
       submitted_at: new Date().toISOString(),
       locale: "fr-FR",
+      persona_id: state.selectedPersona,
       user_agent: navigator.userAgent,
       batch_answers: batchAnswers,
       cumulative_answers: state.cumulativeAnswers
@@ -459,21 +507,23 @@ async function sendToBackend(payload) {
 
 /* ──────────────────────── Continue prompt ──────────────────────── */
 function showContinuePrompt() {
-  const completedBatch = window.BATCHES[state.currentBatchIndex];
-  const totalBatches = window.BATCHES.length;
-  const completedNumber = completedBatch.number;
+  const persona = state.selectedPersona;
+  const totalVisible = getVisibleBatchCount(persona);
+  const currentPosition = getVisibleBatchPosition(state.currentBatchIndex, persona);
 
   $("#continue-progress").textContent =
-    `Série ${completedNumber} sur ${totalBatches} dans la boîte. Vous en êtes à ${
-      completedNumber * 5
-    } questions.`;
+    `Série ${currentPosition} sur ${totalVisible} dans la boîte.`;
 
   let nextIndex = state.currentBatchIndex + 1;
 
-  // Skip MSP-only batch if doctor isn't in an MSP
+  // Skip MSP-only batches and empty batches
   while (nextIndex < window.BATCHES.length) {
     const next = window.BATCHES[nextIndex];
-    if (next.mspOnly && state.practiceStructure && state.practiceStructure !== "msp") {
+    if (next.mspOnly && persona !== "P1c") {
+      nextIndex += 1;
+      continue;
+    }
+    if (getVisibleQuestions(next, persona).length === 0) {
       nextIndex += 1;
       continue;
     }
@@ -521,6 +571,7 @@ async function submitOptIn() {
       batch_title: "Email opt-in for cohort summary",
       submitted_at: new Date().toISOString(),
       locale: "fr-FR",
+      persona_id: state.selectedPersona,
       user_agent: navigator.userAgent,
       batch_answers: { optin_email: email },
       cumulative_answers: { ...state.cumulativeAnswers, optin_email: email }
@@ -536,6 +587,78 @@ async function submitOptIn() {
   }
 }
 
+/* ──────────────────────── Screener ──────────────────────── */
+function wireScreener() {
+  const roleRadios = document.querySelectorAll('input[name="screener_role"]');
+  const doctorVariant = $("#screener-doctor-variant");
+  const patientVariant = $("#screener-patient-variant");
+  const continueBtn = $("#btn-screener-continue");
+  const errorEl = $("#screener-error");
+
+  function clearVariant(name) {
+    document.querySelectorAll(`input[name="${name}"]`).forEach((r) => {
+      r.checked = false;
+      r.closest(".radio-option")?.classList.remove("selected");
+    });
+  }
+
+  function updateContinueState() {
+    const role = document.querySelector('input[name="screener_role"]:checked')?.value;
+    let isComplete = false;
+
+    if (role === "secretaire") {
+      isComplete = true;
+    } else if (role === "medecin") {
+      isComplete = !!document.querySelector('input[name="screener_doctor"]:checked');
+    } else if (role === "patient") {
+      isComplete = !!document.querySelector('input[name="screener_patient"]:checked');
+    }
+
+    continueBtn.disabled = !isComplete;
+  }
+
+  roleRadios.forEach((r) => {
+    r.addEventListener("change", () => {
+      const role = r.value;
+      doctorVariant.classList.toggle("hidden", role !== "medecin");
+      patientVariant.classList.toggle("hidden", role !== "patient");
+      if (role !== "medecin") clearVariant("screener_doctor");
+      if (role !== "patient") clearVariant("screener_patient");
+      errorEl.classList.add("hidden");
+      updateContinueState();
+    });
+  });
+
+  document
+    .querySelectorAll('input[name="screener_doctor"], input[name="screener_patient"]')
+    .forEach((r) => r.addEventListener("change", updateContinueState));
+
+  continueBtn.addEventListener("click", () => {
+    const role = document.querySelector('input[name="screener_role"]:checked')?.value;
+    let persona = null;
+
+    if (role === "secretaire") {
+      persona = "P2";
+    } else if (role === "medecin") {
+      persona = document.querySelector('input[name="screener_doctor"]:checked')?.value;
+    } else if (role === "patient") {
+      persona = document.querySelector('input[name="screener_patient"]:checked')?.value;
+    }
+
+    if (!persona) {
+      errorEl.textContent = "Merci de répondre aux questions ci-dessus.";
+      errorEl.classList.remove("hidden");
+      return;
+    }
+
+    state.selectedPersona = persona;
+    state.currentBatchIndex = 0;
+    state.cumulativeAnswers = {};
+    saveState();
+    showBatch(0);
+  });
+}
+
 /* ──────────────────────── Init ──────────────────────── */
 function init() {
   // Restore session if recent
@@ -545,13 +668,16 @@ function init() {
     state.currentBatchIndex = restored.currentBatchIndex || 0;
     state.cumulativeAnswers = restored.cumulativeAnswers || {};
     state.practiceStructure = restored.practiceStructure || null;
+    state.selectedPersona = restored.selectedPersona || null;
   } else {
     state.sessionId = generateSessionId();
   }
 
   $("#btn-start").addEventListener("click", () => {
-    showBatch(0);
+    show("screener");
   });
+
+  wireScreener();
 
   $("#batch-form").addEventListener("submit", (e) => {
     e.preventDefault();

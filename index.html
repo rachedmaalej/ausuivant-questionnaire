@@ -74,6 +74,89 @@
       </div>
     </section>
 
+    <!-- ─────────────── Screener screen ─────────────── -->
+    <section id="screen-screener" class="screen hidden">
+      <h1 class="display-small">Quelques questions pour vous orienter</h1>
+      <p class="lead">
+        Deux secondes — on s'assure de vous poser les bonnes questions.
+      </p>
+
+      <!-- Q1: role (always shown) -->
+      <article class="info-card">
+        <header class="info-card-header">
+          <span class="material-symbols-outlined info-card-icon">person</span>
+          <h2 class="title-large">Vous êtes plutôt…</h2>
+        </header>
+        <div class="radio-group" role="radiogroup">
+          <label class="radio-option">
+            <input type="radio" name="screener_role" value="medecin" />
+            <span class="radio-label-text">Médecin</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="screener_role" value="secretaire" />
+            <span class="radio-label-text">Secrétaire médicale</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="screener_role" value="patient" />
+            <span class="radio-label-text">Patient (pour vous-même)</span>
+          </label>
+        </div>
+      </article>
+
+      <!-- Q2a: doctor variant (only shown if role=medecin) -->
+      <article class="info-card hidden" id="screener-doctor-variant">
+        <header class="info-card-header">
+          <span class="material-symbols-outlined info-card-icon">medical_services</span>
+          <h2 class="title-large">Comment exercez-vous ?</h2>
+        </header>
+        <div class="radio-group" role="radiogroup">
+          <label class="radio-option">
+            <input type="radio" name="screener_doctor" value="P1" />
+            <span class="radio-label-text">Seul, avec une secrétaire (sur place ou à distance)</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="screener_doctor" value="P1b" />
+            <span class="radio-label-text">Seul, sans secrétaire</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="screener_doctor" value="P1c" />
+            <span class="radio-label-text">En cabinet de groupe ou en MSP</span>
+          </label>
+        </div>
+      </article>
+
+      <!-- Q2b: patient variant (only shown if role=patient) -->
+      <article class="info-card hidden" id="screener-patient-variant">
+        <header class="info-card-header">
+          <span class="material-symbols-outlined info-card-icon">favorite</span>
+          <h2 class="title-large">Et plus précisément, vous êtes…</h2>
+        </header>
+        <div class="radio-group" role="radiogroup">
+          <label class="radio-option">
+            <input type="radio" name="screener_patient" value="P3a" />
+            <span class="radio-label-text">Adulte actif</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="screener_patient" value="P3b" />
+            <span class="radio-label-text">Senior (60 ans et plus)</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="screener_patient" value="P3c" />
+            <span class="radio-label-text">Parent qui consulte pour son enfant</span>
+          </label>
+        </div>
+      </article>
+
+      <div id="screener-error" class="form-error hidden" role="alert"></div>
+
+      <div class="action-row action-row-end">
+        <button type="button" id="btn-screener-continue" class="btn btn-filled btn-large" disabled>
+          <span>Voir mes questions</span>
+          <span class="material-symbols-outlined btn-icon-trailing">arrow_forward</span>
+        </button>
+      </div>
+    </section>
+
     <!-- ─────────────── Batch screen ─────────────── -->
     <section id="screen-batch" class="screen hidden" aria-live="polite">
       <div class="progress-wrap">
