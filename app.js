@@ -589,69 +589,85 @@ async function submitOptIn() {
 
 /* ──────────────────────── Screener ──────────────────────── */
 function wireScreener() {
-  const roleRadios = document.querySelectorAll('input[name="screener_role"]');
-  const doctorVariant = $("#screener-doctor-variant");
-  const patientVariant = $("#screener-patient-variant");
+  const roleCards = document.querySelectorAll('#screener-role-cards .icon-card');
+  const doctorVariant = document.getElementById('screener-doctor-variant');
+  const patientVariant = document.getElementById('screener-patient-variant');
+  const doctorCards = document.querySelectorAll('#screener-doctor-cards .icon-card');
+  const patientCards = document.querySelectorAll('#screener-patient-cards .icon-card');
   const continueBtn = $("#btn-screener-continue");
   const errorEl = $("#screener-error");
 
-  function clearVariant(name) {
-    document.querySelectorAll(`input[name="${name}"]`).forEach((r) => {
-      r.checked = false;
-      r.closest(".radio-option")?.classList.remove("selected");
-    });
-  }
+  let selectedRole = null;
+  let selectedPersona = null;
 
   function updateContinueState() {
-    const role = document.querySelector('input[name="screener_role"]:checked')?.value;
-    let isComplete = false;
-
-    if (role === "secretaire") {
-      isComplete = true;
-    } else if (role === "medecin") {
-      isComplete = !!document.querySelector('input[name="screener_doctor"]:checked');
-    } else if (role === "patient") {
-      isComplete = !!document.querySelector('input[name="screener_patient"]:checked');
-    }
-
-    continueBtn.disabled = !isComplete;
+    continueBtn.disabled = !selectedPersona;
   }
 
-  roleRadios.forEach((r) => {
-    r.addEventListener("change", () => {
-      const role = r.value;
-      doctorVariant.classList.toggle("hidden", role !== "medecin");
-      patientVariant.classList.toggle("hidden", role !== "patient");
-      if (role !== "medecin") clearVariant("screener_doctor");
-      if (role !== "patient") clearVariant("screener_patient");
-      errorEl.classList.add("hidden");
+  function clearVariantSelections() {
+    doctorCards.forEach(c => c.classList.remove('selected'));
+    patientCards.forEach(c => c.classList.remove('selected'));
+    selectedPersona = null;
+  }
+
+  // Role card click handlers
+  roleCards.forEach(card => {
+    card.addEventListener('click', () => {
+      roleCards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+
+      const role = card.dataset.role;
+      selectedRole = role;
+
+      clearVariantSelections();
+
+      if (role === 'medecin') {
+        doctorVariant.classList.remove('hidden');
+        patientVariant.classList.add('hidden');
+        selectedPersona = null;
+      } else if (role === 'patient') {
+        patientVariant.classList.remove('hidden');
+        doctorVariant.classList.add('hidden');
+        selectedPersona = null;
+      } else if (role === 'secretaire') {
+        doctorVariant.classList.add('hidden');
+        patientVariant.classList.add('hidden');
+        selectedPersona = 'P2';
+      }
+
+      errorEl.classList.add('hidden');
       updateContinueState();
     });
   });
 
-  document
-    .querySelectorAll('input[name="screener_doctor"], input[name="screener_patient"]')
-    .forEach((r) => r.addEventListener("change", updateContinueState));
+  // Doctor variant card click handlers
+  doctorCards.forEach(card => {
+    card.addEventListener('click', () => {
+      doctorCards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedPersona = card.dataset.persona;
+      updateContinueState();
+    });
+  });
 
-  continueBtn.addEventListener("click", () => {
-    const role = document.querySelector('input[name="screener_role"]:checked')?.value;
-    let persona = null;
+  // Patient variant card click handlers
+  patientCards.forEach(card => {
+    card.addEventListener('click', () => {
+      patientCards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedPersona = card.dataset.persona;
+      updateContinueState();
+    });
+  });
 
-    if (role === "secretaire") {
-      persona = "P2";
-    } else if (role === "medecin") {
-      persona = document.querySelector('input[name="screener_doctor"]:checked')?.value;
-    } else if (role === "patient") {
-      persona = document.querySelector('input[name="screener_patient"]:checked')?.value;
-    }
-
-    if (!persona) {
+  continueBtn.addEventListener('click', () => {
+    if (!selectedPersona) {
       errorEl.textContent = "Merci de répondre aux questions ci-dessus.";
-      errorEl.classList.remove("hidden");
+      errorEl.classList.remove('hidden');
       return;
     }
 
-    state.selectedPersona = persona;
+    state.selectedPersona = selectedPersona;
     state.currentBatchIndex = 0;
     state.cumulativeAnswers = {};
     saveState();

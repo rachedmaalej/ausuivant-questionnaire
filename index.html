@@ -9,10 +9,10 @@
   <meta name="theme-color" content="#1A3C8F" />
   <title>AuSuivant — Questionnaire pour médecins</title>
 
-  <!-- Roboto Flex for body, Material Symbols Outlined for icons -->
+  <!-- Fraunces (display serif) + Outfit (body sans) + Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500;1,9..144,600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
   <link rel="stylesheet" href="styles.css" />
@@ -49,7 +49,7 @@
         </header>
         <ul class="info-list">
           <li><strong>5 questions à la fois.</strong> Vous arrêtez quand vous voulez.</li>
-          <li><strong>~8 minutes</strong> pour la première série, ~30 minutes en tout si vous allez jusqu'au bout.</li>
+          <li><strong>~6 minutes</strong> pour la première série, ~10 minutes en tout si vous allez jusqu'au bout.</li>
           <li><strong>Réponses courtes bienvenues.</strong> Une phrase suffit quand vous êtes pressé.</li>
           <li><strong>Aucune question clinique.</strong> Aucune donnée patient ne sera collectée.</li>
         </ul>
@@ -77,73 +77,65 @@
     <!-- ─────────────── Screener screen ─────────────── -->
     <section id="screen-screener" class="screen hidden">
       <h1 class="display-small">Quelques questions pour vous orienter</h1>
-      <p class="lead">
-        Deux secondes — on s'assure de vous poser les bonnes questions.
-      </p>
+      <p class="lead">Deux secondes — on s'assure de vous poser les bonnes questions.</p>
 
-      <!-- Q1: role (always shown) -->
-      <article class="info-card">
-        <header class="info-card-header">
-          <span class="material-symbols-outlined info-card-icon">person</span>
-          <h2 class="title-large">Vous êtes plutôt…</h2>
-        </header>
-        <div class="radio-group" role="radiogroup">
-          <label class="radio-option">
-            <input type="radio" name="screener_role" value="medecin" />
-            <span class="radio-label-text">Médecin</span>
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="screener_role" value="secretaire" />
-            <span class="radio-label-text">Secrétaire médicale</span>
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="screener_role" value="patient" />
-            <span class="radio-label-text">Patient (pour vous-même)</span>
-          </label>
+      <!-- Step 1: Role selection (always visible) -->
+      <article class="info-card" id="screener-step1">
+        <p class="screener-step-label">1 / 2</p>
+        <h2 class="title-large">Quel est votre rôle ?</h2>
+        <div class="icon-card-grid" id="screener-role-cards">
+          <button type="button" class="icon-card" data-role="medecin">
+            <span class="icon-card-icon">🩺</span>
+            <span class="icon-card-label">Médecin</span>
+          </button>
+          <button type="button" class="icon-card" data-role="secretaire">
+            <span class="icon-card-icon">📞</span>
+            <span class="icon-card-label">Secrétaire</span>
+          </button>
+          <button type="button" class="icon-card" data-role="patient">
+            <span class="icon-card-icon">🫀</span>
+            <span class="icon-card-label">Patient</span>
+          </button>
         </div>
       </article>
 
-      <!-- Q2a: doctor variant (only shown if role=medecin) -->
-      <article class="info-card hidden" id="screener-doctor-variant">
-        <header class="info-card-header">
-          <span class="material-symbols-outlined info-card-icon">medical_services</span>
-          <h2 class="title-large">Comment exercez-vous ?</h2>
-        </header>
-        <div class="radio-group" role="radiogroup">
-          <label class="radio-option">
-            <input type="radio" name="screener_doctor" value="P1" />
-            <span class="radio-label-text">Seul, avec une secrétaire (sur place ou à distance)</span>
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="screener_doctor" value="P1b" />
-            <span class="radio-label-text">Seul, sans secrétaire</span>
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="screener_doctor" value="P1c" />
-            <span class="radio-label-text">En cabinet de groupe ou en MSP</span>
-          </label>
+      <!-- Step 2a: Doctor variant (revealed when role=medecin) -->
+      <article class="info-card screener-variant-card hidden" id="screener-doctor-variant">
+        <p class="screener-step-label">2 / 2</p>
+        <h2 class="title-large">Comment exercez-vous ?</h2>
+        <div class="icon-card-grid" id="screener-doctor-cards">
+          <button type="button" class="icon-card" data-persona="P1">
+            <span class="icon-card-icon">👩‍⚕️</span>
+            <span class="icon-card-label">Seul, avec secrétaire</span>
+          </button>
+          <button type="button" class="icon-card" data-persona="P1b">
+            <span class="icon-card-icon">🧑‍⚕️</span>
+            <span class="icon-card-label">Seul, sans secrétaire</span>
+          </button>
+          <button type="button" class="icon-card" data-persona="P1c">
+            <span class="icon-card-icon">🏥</span>
+            <span class="icon-card-label">En groupe / MSP</span>
+          </button>
         </div>
       </article>
 
-      <!-- Q2b: patient variant (only shown if role=patient) -->
-      <article class="info-card hidden" id="screener-patient-variant">
-        <header class="info-card-header">
-          <span class="material-symbols-outlined info-card-icon">favorite</span>
-          <h2 class="title-large">Et plus précisément, vous êtes…</h2>
-        </header>
-        <div class="radio-group" role="radiogroup">
-          <label class="radio-option">
-            <input type="radio" name="screener_patient" value="P3a" />
-            <span class="radio-label-text">Adulte actif</span>
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="screener_patient" value="P3b" />
-            <span class="radio-label-text">Senior (60 ans et plus)</span>
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="screener_patient" value="P3c" />
-            <span class="radio-label-text">Parent qui consulte pour son enfant</span>
-          </label>
+      <!-- Step 2b: Patient variant (revealed when role=patient) -->
+      <article class="info-card screener-variant-card hidden" id="screener-patient-variant">
+        <p class="screener-step-label">2 / 2</p>
+        <h2 class="title-large">Vous êtes plutôt…</h2>
+        <div class="icon-card-grid" id="screener-patient-cards">
+          <button type="button" class="icon-card" data-persona="P3a">
+            <span class="icon-card-icon">💼</span>
+            <span class="icon-card-label">Adulte actif</span>
+          </button>
+          <button type="button" class="icon-card" data-persona="P3b">
+            <span class="icon-card-icon">🧓</span>
+            <span class="icon-card-label">Senior (60+)</span>
+          </button>
+          <button type="button" class="icon-card" data-persona="P3c">
+            <span class="icon-card-icon">👶</span>
+            <span class="icon-card-label">Parent</span>
+          </button>
         </div>
       </article>
 
